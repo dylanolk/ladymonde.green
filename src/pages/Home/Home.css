@@ -1,0 +1,42 @@
+.homeHeader {
+    display: flex;
+}
+
+.homeBody {
+    height: 100%;
+}
+
+.flexBox {
+    display: flex;
+    justify-content: center;
+}
+
+.mainTextDiv {
+    display: inline-block;
+    height: 15%;
+    border-color: green;
+    border-style: solid;
+    width: 80%;
+    padding: 10px;
+}
+
+.mainTextBox {
+    width: 100%;
+    height: 100%;
+    border: none;
+    outline: none;
+    font-size: 14vh;
+}
+
+.submitButton {
+    width: 10%;
+    font-size: 20px;
+}
+
+.resultsBox {
+    border-style: inset;
+    height: 100%;
+    margin-left: 9%;
+    margin-right: 9%;
+    margin-top: 1%;
+}
