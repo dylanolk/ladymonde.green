@@ -3,6 +3,13 @@ import './Home.css'
 function Home() {
     const [inputVal, setInputVal] = useState("")
     const [resultsList, setResultsList] = useState([])
+
+    function update_results(inputVal: string, callback: Function) {
+        fetch(`http://127.0.0.1:5000/mondegreens_from_phrase/${inputVal}`)
+            .then(response => response.json())
+            .then(json => callback(json))
+            .catch(error => console.error(error))
+    }
     return (
         <div style={{ height: "100%" }}>
             <div className='homeHeader'>
@@ -11,7 +18,10 @@ function Home() {
                 </div>
             </div>
             <div className='homeBody'>
-                <div className="flexBox">
+                <form className="flexBox" onSubmit={(e) => {
+                    e.preventDefault()
+                    update_results(inputVal, setResultsList)
+                }}>
                     <div className="mainTextDiv">
                         <input className='mainTextBox'
                             onChange={(e) => {
@@ -20,10 +30,8 @@ function Home() {
                         >
                         </input>
                     </div>
-                    <button className="submitButton" onClick={() => {
-                        update_results(inputVal, setResultsList)
-                    }}>SUBMIT</button>
-                </div>
+                    <button type="submit" className="submitButton">SUBMIT</button>
+                </form>
                 <div className="resultsBox">
                     {resultsList.map((item: string) =>
                         <p>{item}</p>
@@ -34,11 +42,6 @@ function Home() {
     )
 }
 
-function update_results(inputVal: string, callback: Function) {
-    fetch(`http://127.0.0.1:5000/mondegreens_from_phrase/${inputVal}`)
-        .then(response => response.json())
-        .then(json => callback(json))
-        .catch(error => console.error(error))
-}
+
 
 export default Home
