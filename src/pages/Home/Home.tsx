@@ -5,7 +5,13 @@ function Home() {
     const [resultsList, setResultsList] = useState([])
 
     function update_results(inputVal: string, callback: Function) {
-        fetch(`http://127.0.0.1:5000/mondegreens_from_phrase/${inputVal}`)
+        fetch(
+            `http://127.0.0.1:5000/mondegreens_from_phrase`,
+            {
+                method: "POST",
+                body: JSON.stringify({ phrase: inputVal })
+            }
+        )
             .then(response => response.json())
             .then(json => callback(json))
             .catch(error => console.error(error))
