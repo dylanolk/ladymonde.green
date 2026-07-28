@@ -1,42 +1,436 @@
-.homeHeader {
+.home {
+    width: min(1120px, calc(100% - 48px));
+    min-height: 100vh;
+    margin: 0 auto;
     display: flex;
+    flex-direction: column;
 }
 
-.homeBody {
-    height: 100%;
+.siteHeader {
+    height: 104px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 3px double var(--gold-dim);
 }
 
-.flexBox {
+.wordmark {
     display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--text);
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -0.05em;
+    text-decoration: none;
+}
+
+.wordmark > span:last-child span {
+    color: var(--accent);
+}
+
+.wordmarkMark {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    flex: 0 0 auto;
+    align-items: center;
     justify-content: center;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    color: var(--background);
+    background: var(--accent);
+    font-family: inherit;
+    font-size: 1.35rem;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.06em;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 
-.mainTextDiv {
-    display: inline-block;
-    height: 15%;
-    border-color: green;
-    border-style: solid;
-    width: 80%;
-    padding: 10px;
+.wordmarkMark span {
+    transform: translateX(-1px);
 }
 
-.mainTextBox {
+.headerTag {
+    color: var(--muted);
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+}
+
+.visuallyHidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.generator {
+    position: relative;
+    width: min(900px, 100%);
+    margin: 0 auto;
+    padding: 142px 0 88px;
+}
+
+.generator::before {
+    content: "❦";
+    position: absolute;
+    top: 70px;
+    left: 50%;
+    color: var(--gold-dim);
+    font-family: Georgia, serif;
+    font-size: 1.3rem;
+    transform: translateX(-50%);
+}
+
+.intro {
+    margin-bottom: 50px;
+}
+
+.eyebrow {
+    margin: 0 0 18px;
+    color: var(--accent);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+}
+
+.intro h1 {
+    max-width: 700px;
+    margin: 0;
+    color: var(--text);
+    font-size: clamp(2.5rem, 7vw, 5.5rem);
+    font-weight: 500;
+    line-height: 0.98;
+    letter-spacing: -0.075em;
+}
+
+.intro h1 span {
+    color: var(--muted);
+}
+
+.introCopy {
+    max-width: 530px;
+    margin: 24px 0 0;
+    color: var(--muted);
+    font-family: Inter, "Segoe UI", sans-serif;
+    font-size: 1.05rem;
+    line-height: 1.65;
+}
+
+.resultsHeader {
+    display: flex;
+    justify-content: space-between;
+    color: var(--muted);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.inputRow {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 18px;
+}
+
+.phraseInput {
+    min-width: 0;
     width: 100%;
-    height: 100%;
-    border: none;
+    min-height: 116px;
+    max-height: 52vh;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
     outline: none;
-    font-size: 14vh;
+    overflow-y: auto;
+    resize: none;
+    color: var(--text);
+    background: transparent;
+    font-size: clamp(1.8rem, 5vw, 3.7rem);
+    font-weight: 500;
+    line-height: 1.08;
+    letter-spacing: -0.07em;
+    caret-color: var(--accent);
+    opacity: 0;
+    animation: inputArrive 600ms cubic-bezier(0.22, 1, 0.36, 1) 80ms forwards;
+    transition: color 220ms ease, opacity 220ms ease;
+}
+
+.phraseInput::placeholder {
+    color: #596058;
+    opacity: 1;
+}
+
+.phraseInput:hover {
+    color: #e0dfd3;
+}
+
+.phraseInput:focus {
+    color: var(--text);
+}
+
+.phraseInput.hasValue {
+    color: #deddd2;
 }
 
 .submitButton {
-    width: 10%;
-    font-size: 20px;
+    justify-self: end;
+    height: 36px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-radius: 0;
+    color: var(--gold);
+    background: transparent;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: color 160ms ease, transform 160ms ease, opacity 160ms ease;
 }
 
-.resultsBox {
-    border-style: inset;
-    height: 100%;
-    margin-left: 9%;
-    margin-right: 9%;
-    margin-top: 1%;
+.submitButton:hover:not(:disabled) {
+    color: #e1c887;
+    transform: translateX(2px);
+}
+
+.submitButton:focus-visible {
+    outline: 1px solid var(--gold);
+    outline-offset: 3px;
+}
+
+.submitButton:disabled {
+    cursor: not-allowed;
+    color: var(--muted);
+    opacity: 0.45;
+}
+
+.submitButton span {
+    font-family: Georgia, serif;
+    font-size: 1.25rem;
+}
+
+.results {
+    min-height: 250px;
+    margin-top: 68px;
+}
+
+.resultsHeader {
+    padding-bottom: 14px;
+    border-bottom: 3px double var(--gold-dim);
+}
+
+.emptyState {
+    min-height: 185px;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    color: #62625b;
+}
+
+.emptyState span {
+    color: var(--accent);
+    font-size: 1.6rem;
+    letter-spacing: 0.18em;
+}
+
+.emptyState p {
+    margin: 8px 0 0;
+    font-family: Inter, "Segoe UI", sans-serif;
+    font-size: 0.9rem;
+}
+
+.resultsList {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.resultsList li {
+    min-height: 76px;
+    padding: 18px 4px;
+    display: grid;
+    grid-template-columns: 58px 1fr;
+    align-items: center;
+    border-bottom: 1px solid rgba(197, 166, 103, 0.22);
+    opacity: 0;
+    animation: resultArrive 440ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    transition: padding 160ms ease, background 160ms ease;
+}
+
+.resultsList li:hover {
+    padding-right: 14px;
+    padding-left: 14px;
+    background: rgba(255, 255, 255, 0.015);
+}
+
+.resultsList li > span {
+    color: var(--gold);
+    font-size: 0.7rem;
+}
+
+.resultsList p {
+    margin: 0;
+    color: var(--text);
+    font-size: clamp(0.95rem, 2vw, 1.12rem);
+    line-height: 1.5;
+}
+
+.errorMessage {
+    margin: 36px 0;
+    color: var(--danger);
+    font-size: 0.86rem;
+}
+
+.loadingState {
+    height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+}
+
+.loadingState span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 900ms ease-in-out infinite alternate;
+}
+
+.loadingState span:nth-child(2) {
+    animation-delay: 180ms;
+}
+
+.loadingState span:nth-child(3) {
+    animation-delay: 360ms;
+}
+
+footer {
+    margin-top: auto;
+    padding: 24px 0 30px;
+    display: flex;
+    gap: 16px;
+    border-top: 3px double var(--gold-dim);
+    color: var(--muted);
+    font-size: 0.66rem;
+    line-height: 1.5;
+}
+
+footer span {
+    color: var(--gold);
+}
+
+footer p {
+    margin: 0;
+}
+
+@keyframes pulse {
+    from {
+        opacity: 0.25;
+        transform: translateY(3px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(-3px);
+    }
+}
+
+@keyframes inputArrive {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes resultArrive {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 640px) {
+    .home {
+        width: min(100% - 32px, 1120px);
+    }
+
+    .siteHeader {
+        height: 88px;
+    }
+
+    .wordmark {
+        gap: 8px;
+        font-size: 0.9rem;
+    }
+
+    .wordmarkMark {
+        width: 40px;
+        height: 40px;
+        font-size: 1.3rem;
+    }
+
+    .generator {
+        padding: 112px 0 60px;
+    }
+
+    .generator::before {
+        top: 52px;
+    }
+
+    .intro {
+        margin-bottom: 42px;
+    }
+
+    .introCopy {
+        margin-top: 22px;
+        font-size: 0.95rem;
+    }
+
+    .inputRow {
+        grid-template-columns: 1fr;
+    }
+
+    .submitButton {
+        width: auto;
+        height: 40px;
+    }
+
+    .results {
+        margin-top: 54px;
+    }
+
+    footer {
+        flex-direction: column;
+        gap: 4px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }
