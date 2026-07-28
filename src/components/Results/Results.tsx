@@ -8,12 +8,22 @@ type ResultsProps = {
     onExcludeWord: (word: string) => void
 }
 
-function cleanWord(token: string) {
-    return token.replace(/^[^A-Za-z0-9']+|[^A-Za-z0-9']+$/g, "")
-}
-
 function Results({ items, isLoading, error, onExcludeWord }: ResultsProps) {
     const [selectedToken, setSelectedToken] = useState<string | null>(null)
+    const [copiedResult, setCopiedResult] = useState<number | null>(null)
+    const [showExclusionHint, setShowExclusionHint] = useState(false)
+
+    useEffect(() => {
+        if (items.length === 0) return
+
+        try {
+            if (sessionStorage.getItem("ladymonde-exclusion-hint-seen")) return
+        } catch {
+            // The hint can still work when browser storage is unavailable.
+        }
+
+        setShowExclusionHint(true)
+    }, [items])
 
     useEffect(() => {
         if (!selectedToken) return
@@ -40,6 +50,29 @@ function Results({ items, isLoading, error, onExcludeWord }: ResultsProps) {
         setSelectedToken(null)
     }
 
+    function dismissExclusionHint() {
+        setShowExclusionHint(false)
+        try {
+            sessionStorage.setItem("ladymonde-exclusion-hint-seen", "true")
+        } catch {
+            // Dismissing the hint should not depend on browser storage.
+        }
+    }
+
+    async function copyResult(result: string, resultIndex: number) {
+        try {
+            await navigator.clipboard.writeText(result)
+            setCopiedResult(resultIndex)
+            window.setTimeout(() => {
+                setCopiedResult((current) =>
+                    current === resultIndex ? null : current
+                )
+            }, 1400)
+        } catch (error) {
+            console.error("Could not copy result.", error)
+        }
+    }
+
     return (
         <section className="results" aria-live="polite" aria-busy={isLoading}>
             <div className="resultsHeader">
@@ -48,6 +81,23 @@ function Results({ items, isLoading, error, onExcludeWord }: ResultsProps) {
                     <span>{items.length.toString().padStart(2, "0")}</span>
                 )}
             </div>
+
+            {showExclusionHint && !isLoading && (
+                <aside className="exclusionHint" aria-label="Result word tip">
+                    <span className="hintIcon" aria-hidden="true">✦</span>
+                    <div>
+                        <strong>Fine-tune your results</strong>
+                        <p>Don’t like a word? Click it to add it to your exclusions.</p>
+                    </div>
+                    <button
+                        type="button"
+                        aria-label="Dismiss result word tip"
+                        onClick={dismissExclusionHint}
+                    >
+                        ×
+                    </button>
+                </aside>
+            )}
 
             {error && <p className="errorMessage">{error}</p>}
 
@@ -80,11 +130,6 @@ function Results({ items, isLoading, error, onExcludeWord }: ResultsProps) {
                                         return <span key={tokenIndex}>{token}</span>
                                     }
 
-                                    const word = cleanWord(token)
-                                    if (!word) {
-                                        return <span key={tokenIndex}>{token}</span>
-                                    }
-
                                     const tokenId = `${resultIndex}-${tokenIndex}`
                                     const isSelected = selectedToken === tokenId
 
@@ -98,11 +143,12 @@ function Results({ items, isLoading, error, onExcludeWord }: ResultsProps) {
                                                 type="button"
                                                 className="resultWord"
                                                 aria-expanded={isSelected}
-                                                onClick={() =>
+                                                onClick={() => {
+                                                    dismissExclusionHint()
                                                     setSelectedToken(
                                                         isSelected ? null : tokenId
                                                     )
-                                                }
+                                                }}
                                             >
                                                 {token}
                                             </button>
@@ -110,9 +156,9 @@ function Results({ items, isLoading, error, onExcludeWord }: ResultsProps) {
                                                 <span className="wordAction">
                                                     <button
                                                         type="button"
-                                                        onClick={() => excludeWord(word)}
+                                                        onClick={() => excludeWord(token)}
                                                     >
-                                                        exclude “{word}”
+                                                        exclude “{token}”
                                                     </button>
                                                 </span>
                                             )}
@@ -120,6 +166,27 @@ function Results({ items, isLoading, error, onExcludeWord }: ResultsProps) {
                                     )
                                 })}
                             </p>
+                            <button
+                                type="button"
+                                className="copyButton"
+                                onClick={() => copyResult(item, resultIndex)}
+                                aria-label={
+                                    copiedResult === resultIndex
+                                        ? `Interpretation ${resultIndex + 1} copied`
+                                        : `Copy interpretation ${resultIndex + 1}`
+                                }
+                            >
+                                {copiedResult === resultIndex ? (
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="m5.5 12.5 4 4 9-9" />
+                                    </svg>
+                                ) : (
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <rect x="8" y="8" width="11" height="11" rx="3" />
+                                        <path d="M16 8V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v6a3 3 0 0 0 3 3h1" />
+                                    </svg>
+                                )}
+                            </button>
                         </li>
                     ))}
                 </ol>

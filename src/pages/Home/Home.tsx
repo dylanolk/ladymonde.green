@@ -1,4 +1,11 @@
-import { ChangeEvent, FormEvent, KeyboardEvent, useEffect, useState } from 'react'
+import {
+    ChangeEvent,
+    FormEvent,
+    KeyboardEvent,
+    useEffect,
+    useRef,
+    useState
+} from 'react'
 import FeatureSettings, {
     createDefaultFeatures
 } from '../../components/FeatureSettings/FeatureSettings'
@@ -29,22 +36,6 @@ function createRequest(
     }
 }
 
-let warmupStarted = false
-
-function warmBackend() {
-    if (warmupStarted) return
-    warmupStarted = true
-
-    fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(createRequest("")),
-        keepalive: true
-    }).catch((error) => {
-        console.debug("Backend warm-up request did not complete.", error)
-    })
-}
-
 function Home() {
     const [inputVal, setInputVal] = useState("")
     const [resultsList, setResultsList] = useState<string[]>([])
@@ -55,10 +46,46 @@ function Home() {
     const [includeWords, setIncludeWords] = useState("")
     const [excludeWords, setExcludeWords] = useState("")
     const [settingsAttention, setSettingsAttention] = useState(0)
+    const lastWarmedFeatures = useRef<string | null>(null)
+    const warmupRequestId = useRef(0)
 
     useEffect(() => {
-        warmBackend()
-    }, [])
+        const serializedFeatures = JSON.stringify(featuresParams)
+
+        if (serializedFeatures === lastWarmedFeatures.current) return
+
+        const controller = new AbortController()
+        const timeout = window.setTimeout(async () => {
+            if (serializedFeatures === lastWarmedFeatures.current) return
+
+            lastWarmedFeatures.current = serializedFeatures
+            const requestId = ++warmupRequestId.current
+
+            try {
+                await fetch(API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(
+                        createRequest("test", featuresParams)
+                    ),
+                    signal: controller.signal,
+                    keepalive: true
+                })
+            } catch (error) {
+                if (
+                    requestId === warmupRequestId.current &&
+                    !(error instanceof DOMException && error.name === "AbortError")
+                ) {
+                    console.debug("Backend warm-up request did not complete.", error)
+                }
+            }
+        }, 400)
+
+        return () => {
+            window.clearTimeout(timeout)
+            controller.abort()
+        }
+    }, [featuresParams])
 
     async function generateMondegreens(event: FormEvent<HTMLFormElement>) {
         event.preventDefault()

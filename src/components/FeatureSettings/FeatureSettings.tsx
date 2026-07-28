@@ -13,7 +13,22 @@ const FEATURE_OPTIONS: Array<{ key: keyof FeaturesParams; label: string }> = [
     { key: "bleed_ch_j", label: "CH / J bleed" }
 ]
 
-export function createDefaultFeatures(enabled = false): FeaturesParams {
+const INITIAL_FEATURES: FeaturesParams = {
+    h_dropping: false,
+    consonant_reduction: false,
+    bleed_plosives: false,
+    bleed_gutterals: false,
+    bleed_s_z: false,
+    bleed_vowels: false,
+    bleed_t_d: false,
+    bleed_ch_j: false
+}
+
+export function createDefaultFeatures(enabled?: boolean): FeaturesParams {
+    if (enabled === undefined) {
+        return { ...INITIAL_FEATURES }
+    }
+
     return Object.fromEntries(
         FEATURE_OPTIONS.map(({ key }) => [key, enabled])
     ) as FeaturesParams
