@@ -6,7 +6,7 @@ function Home() {
 
     function update_results(inputVal: string, callback: Function) {
         fetch(
-            `http://127.0.0.1:5000/mondegreens_from_phrase`,
+            `https://mondegreen-generator-backend-708250751917.us-east1.run.app/mondegreens_from_phrase`,
             {
                 method: "POST",
                 body: JSON.stringify({ phrase: inputVal })
