@@ -1,0 +1,218 @@
+.results {
+    min-height: 250px;
+    margin-top: 68px;
+}
+
+.resultsHeader {
+    padding-bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 3px double var(--gold-dim);
+    color: var(--muted);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.emptyState {
+    min-height: 185px;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    color: #62625b;
+}
+
+.emptyState > span {
+    color: var(--accent);
+    font-size: 1.6rem;
+    letter-spacing: 0.18em;
+}
+
+.emptyState p {
+    margin: 8px 0 0;
+    font-family: Inter, "Segoe UI", sans-serif;
+    font-size: 0.9rem;
+}
+
+.resultsList {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.resultsList li {
+    min-height: 76px;
+    padding: 18px 4px;
+    display: grid;
+    grid-template-columns: 58px 1fr;
+    align-items: center;
+    border-bottom: 1px solid rgba(197, 166, 103, 0.22);
+    opacity: 0;
+    animation: resultArrive 440ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    transition: padding 160ms ease, background 160ms ease;
+}
+
+.resultsList li:hover {
+    padding-right: 14px;
+    padding-left: 14px;
+    background: rgba(255, 255, 255, 0.015);
+}
+
+.resultNumber {
+    color: var(--gold);
+    font-size: 0.7rem;
+}
+
+.resultsList p {
+    margin: 0;
+    color: var(--text);
+    font-size: clamp(0.95rem, 2vw, 1.12rem);
+    line-height: 1.75;
+}
+
+.resultToken {
+    position: relative;
+    display: inline-block;
+}
+
+.resultWord {
+    padding: 2px 1px;
+    border-radius: 3px;
+    color: inherit;
+    background: transparent;
+    cursor: pointer;
+    transition: color 140ms ease, background 140ms ease;
+}
+
+.resultWord:hover,
+.resultWord[aria-expanded="true"] {
+    color: var(--accent-bright);
+    background: rgba(157, 175, 104, 0.08);
+}
+
+.resultWord:focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.wordAction {
+    position: absolute;
+    z-index: 10;
+    left: 50%;
+    bottom: calc(100% + 8px);
+    width: max-content;
+    padding: 5px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--surface);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+    transform: translateX(-50%);
+    animation: wordActionArrive 140ms ease-out;
+}
+
+.wordAction::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    border: 5px solid transparent;
+    border-top-color: var(--border);
+    transform: translateX(-50%);
+}
+
+.wordAction button {
+    padding: 6px 8px;
+    border-radius: 4px;
+    color: var(--text);
+    background: transparent;
+    font-size: 0.7rem;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.wordAction button:hover {
+    color: var(--accent-bright);
+    background: rgba(157, 175, 104, 0.08);
+}
+
+.errorMessage {
+    margin: 36px 0;
+    color: var(--danger);
+    font-size: 0.86rem;
+}
+
+.loadingState {
+    height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+}
+
+.loadingState > span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 900ms ease-in-out infinite alternate;
+}
+
+.loadingState > span:nth-child(2) {
+    animation-delay: 180ms;
+}
+
+.loadingState > span:nth-child(3) {
+    animation-delay: 360ms;
+}
+
+@keyframes wordActionArrive {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+@keyframes pulse {
+    from {
+        opacity: 0.25;
+        transform: translateY(3px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(-3px);
+    }
+}
+
+@keyframes resultArrive {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 640px) {
+    .results {
+        margin-top: 54px;
+    }
+
+    .wordAction {
+        left: 0;
+        transform: none;
+    }
+
+    .wordAction::after {
+        left: 12px;
+    }
+}

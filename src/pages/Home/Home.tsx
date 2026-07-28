@@ -1,8 +1,33 @@
 import { ChangeEvent, FormEvent, KeyboardEvent, useEffect, useState } from 'react'
+import FeatureSettings, {
+    createDefaultFeatures
+} from '../../components/FeatureSettings/FeatureSettings'
+import Results from '../../components/Results/Results'
+import type { FeaturesParams, MondegreenRequest } from '../../types/mondegreen'
 import './Home.css'
 
-const API_URL =
-    "https://mondegreen-generator-backend-708250751917.us-east1.run.app/mondegreens_from_phrase"
+const API_URL = import.meta.env.DEV
+    ? "/api/mondegreens_from_phrase"
+    : "https://mondegreen-generator-backend-708250751917.us-east1.run.app/mondegreens_from_phrase"
+
+function createRequest(
+    phrase: string,
+    featuresParams: FeaturesParams = {},
+    includeWords = "",
+    excludeWords = ""
+): MondegreenRequest {
+    const splitWords = (words: string) =>
+        words.trim() ? words.trim().split(/\s+/) : []
+
+    return {
+        phrase,
+        settings: {
+            exclude_words: splitWords(excludeWords),
+            include_words: splitWords(includeWords),
+            features_params: featuresParams
+        }
+    }
+}
 
 let warmupStarted = false
 
@@ -12,7 +37,8 @@ function warmBackend() {
 
     fetch(API_URL, {
         method: "POST",
-        body: JSON.stringify({ phrase: "" }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(createRequest("")),
         keepalive: true
     }).catch((error) => {
         console.debug("Backend warm-up request did not complete.", error)
@@ -24,6 +50,11 @@ function Home() {
     const [resultsList, setResultsList] = useState<string[]>([])
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState("")
+    const [featuresParams, setFeaturesParams] =
+        useState<FeaturesParams>(() => createDefaultFeatures())
+    const [includeWords, setIncludeWords] = useState("")
+    const [excludeWords, setExcludeWords] = useState("")
+    const [settingsAttention, setSettingsAttention] = useState(0)
 
     useEffect(() => {
         warmBackend()
@@ -44,7 +75,14 @@ function Home() {
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ phrase })
+                    body: JSON.stringify(
+                        createRequest(
+                            phrase,
+                            featuresParams,
+                            includeWords,
+                            excludeWords
+                        )
+                    )
                 }
             )
 
@@ -72,6 +110,19 @@ function Home() {
             event.preventDefault()
             event.currentTarget.form?.requestSubmit()
         }
+    }
+
+    function addExcludedWord(word: string) {
+        const words = excludeWords.trim() ? excludeWords.trim().split(/\s+/) : []
+        const alreadyExcluded = words.some(
+            (existingWord) =>
+                existingWord.toLocaleLowerCase() === word.toLocaleLowerCase()
+        )
+
+        if (alreadyExcluded) return
+
+        setExcludeWords([...words, word].join(" "))
+        setSettingsAttention((current) => current + 1)
     }
 
     return (
@@ -109,45 +160,24 @@ function Home() {
                             <span aria-hidden="true">❧</span>
                         </button>
                     </div>
+
+                    <FeatureSettings
+                        value={featuresParams}
+                        onChange={setFeaturesParams}
+                        includeWords={includeWords}
+                        excludeWords={excludeWords}
+                        onIncludeWordsChange={setIncludeWords}
+                        onExcludeWordsChange={setExcludeWords}
+                        attentionSignal={settingsAttention}
+                    />
                 </form>
 
-                <section className="results" aria-live="polite" aria-busy={isLoading}>
-                    <div className="resultsHeader">
-                        <span>interpretations</span>
-                        {resultsList.length > 0 && (
-                            <span>{resultsList.length.toString().padStart(2, "0")}</span>
-                        )}
-                    </div>
-
-                    {error && <p className="errorMessage">{error}</p>}
-
-                    {!error && resultsList.length === 0 && !isLoading && (
-                        <div className="emptyState">
-                            <span aria-hidden="true">···</span>
-                            <p>Your alternate phrases will appear here</p>
-                        </div>
-                    )}
-
-                    {isLoading && (
-                        <div className="loadingState" aria-label="Generating interpretations">
-                            <span></span><span></span><span></span>
-                        </div>
-                    )}
-
-                    {!isLoading && resultsList.length > 0 && (
-                        <ol className="resultsList">
-                            {resultsList.map((item, index) => (
-                                <li
-                                    key={`${item}-${index}`}
-                                    style={{ animationDelay: `${index * 55}ms` }}
-                                >
-                                    <span>{String(index + 1).padStart(2, "0")}</span>
-                                    <p>{item}</p>
-                                </li>
-                            ))}
-                        </ol>
-                    )}
-                </section>
+                <Results
+                    items={resultsList}
+                    isLoading={isLoading}
+                    error={error}
+                    onExcludeWord={addExcludedWord}
+                />
             </section>
 
             <footer>
