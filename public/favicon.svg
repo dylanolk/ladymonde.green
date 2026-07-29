@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="highlight" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".14"/>
+      <stop offset=".45" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="18" fill="#9daf68"/>
+  <rect x="1" y="1" width="62" height="62" rx="17" fill="none" stroke="#ffffff" stroke-opacity=".08" stroke-width="2"/>
+  <rect width="64" height="64" rx="18" fill="url(#highlight)"/>
+  <text
+    x="31"
+    y="42"
+    fill="#171b17"
+    font-family="Consolas, 'Liberation Mono', monospace"
+    font-size="31"
+    font-weight="800"
+    text-anchor="middle"
+  >L</text>
+</svg>
