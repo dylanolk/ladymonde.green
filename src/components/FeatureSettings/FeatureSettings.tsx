@@ -124,7 +124,6 @@ function FeatureSettings({
                         <input
                             type="text"
                             value={includeWords}
-                            placeholder="word another"
                             autoComplete="off"
                             onChange={(event) => onIncludeWordsChange(event.target.value)}
                         />
@@ -134,7 +133,6 @@ function FeatureSettings({
                         <input
                             type="text"
                             value={excludeWords}
-                            placeholder="word another"
                             autoComplete="off"
                             onChange={(event) => onExcludeWordsChange(event.target.value)}
                         />

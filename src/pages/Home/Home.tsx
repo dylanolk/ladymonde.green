@@ -55,9 +55,7 @@ function Home() {
         if (serializedFeatures === lastWarmedFeatures.current) return
 
         const controller = new AbortController()
-        const timeout = window.setTimeout(async () => {
-            if (serializedFeatures === lastWarmedFeatures.current) return
-
+        const sendWarmup = async () => {
             lastWarmedFeatures.current = serializedFeatures
             const requestId = ++warmupRequestId.current
 
@@ -66,7 +64,7 @@ function Home() {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(
-                        createRequest("test", featuresParams)
+                        createRequest("asdf", featuresParams)
                     ),
                     signal: controller.signal,
                     keepalive: true
@@ -79,10 +77,14 @@ function Home() {
                     console.debug("Backend warm-up request did not complete.", error)
                 }
             }
-        }, 400)
+        }
+
+        const timeout = window.setTimeout(sendWarmup, 400)
+        const interval = window.setInterval(sendWarmup, 60_000)
 
         return () => {
             window.clearTimeout(timeout)
+            window.clearInterval(interval)
             controller.abort()
         }
     }, [featuresParams])
@@ -208,8 +210,6 @@ function Home() {
             </section>
 
             <footer>
-                <span>mondegreen</span>
-                <p>a word or phrase resulting from a mishearing of another</p>
             </footer>
         </main>
     )

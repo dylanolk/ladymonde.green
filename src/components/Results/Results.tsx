@@ -174,7 +174,7 @@ function Results({ items, isLoading, error, onExcludeWord }: ResultsProps) {
     return (
         <section className="results" aria-live="polite" aria-busy={isLoading}>
             <div className="resultsHeader">
-                <span>interpretations</span>
+                <span>results</span>
                 {items.length > 0 && (
                     <span>{items.length.toString().padStart(2, "0")}</span>
                 )}
@@ -218,7 +218,7 @@ function Results({ items, isLoading, error, onExcludeWord }: ResultsProps) {
             )}
 
             {isLoading && (
-                <div className="loadingState" aria-label="Generating interpretations">
+                <div className="loadingState" aria-label="Generating results">
                     <span></span><span></span><span></span>
                 </div>
             )}
@@ -298,8 +298,8 @@ function Results({ items, isLoading, error, onExcludeWord }: ResultsProps) {
                                         onClick={() => copyResult(item, resultIndex)}
                                         aria-label={
                                             copiedResult === resultIndex
-                                                ? `Interpretation ${resultIndex + 1} copied`
-                                                : `Copy interpretation ${resultIndex + 1}`
+                                                ? `Result ${resultIndex + 1} copied`
+                                                : `Copy result ${resultIndex + 1}`
                                         }
                                     >
                                         {copiedResult === resultIndex ? (
