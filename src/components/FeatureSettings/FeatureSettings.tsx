@@ -41,6 +41,8 @@ type FeatureSettingsProps = {
     excludeWords: string
     onIncludeWordsChange: (value: string) => void
     onExcludeWordsChange: (value: string) => void
+    wordCommonality: number
+    onWordCommonalityChange: (value: number) => void
     attentionSignal: number
 }
 
@@ -51,6 +53,8 @@ function FeatureSettings({
     excludeWords,
     onIncludeWordsChange,
     onExcludeWordsChange,
+    wordCommonality,
+    onWordCommonalityChange,
     attentionSignal
 }: FeatureSettingsProps) {
     const detailsRef = useRef<HTMLDetailsElement>(null)
@@ -138,6 +142,34 @@ function FeatureSettings({
                         />
                     </label>
                     <p>Separate words with spaces.</p>
+                </div>
+
+                <div className="commonalityControl">
+                    <div className="commonalityHeader">
+                        <label htmlFor="wordCommonality">word commonality</label>
+                        <button
+                            type="button"
+                            disabled={wordCommonality === 0.5}
+                            onClick={() => onWordCommonalityChange(0.5)}
+                        >
+                            reset
+                        </button>
+                    </div>
+                    <input
+                        id="wordCommonality"
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                        value={wordCommonality}
+                        onChange={(event) =>
+                            onWordCommonalityChange(Number(event.target.value))
+                        }
+                    />
+                    <div className="commonalityLabels" aria-hidden="true">
+                        <span>use less common words</span>
+                        <span>excluded uncommon words</span>
+                    </div>
                 </div>
 
                 <div className="settingsActions">

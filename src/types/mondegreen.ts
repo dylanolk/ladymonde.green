@@ -14,6 +14,7 @@ export type MondegreenRequest = {
     settings?: {
         exclude_words?: string[]
         include_words?: string[]
+        minimum_word_commonality?: number
         features_params?: FeaturesParams
     }
 }

@@ -170,6 +170,72 @@
     font-size: 0.7rem;
 }
 
+.commonalityControl {
+    padding: 22px 0;
+    display: grid;
+    gap: 12px;
+    border-bottom: 1px solid rgba(197, 166, 103, 0.12);
+}
+
+.commonalityHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.commonalityHeader label {
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.commonalityHeader button {
+    padding: 3px 0;
+    color: var(--accent);
+    background: transparent;
+    font-size: 0.68rem;
+    cursor: pointer;
+}
+
+.commonalityHeader button:hover:not(:disabled) {
+    color: var(--accent-bright);
+}
+
+.commonalityHeader button:disabled {
+    color: #555d54;
+    cursor: default;
+}
+
+.commonalityControl input {
+    width: 100%;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+.commonalityControl input:focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: 4px;
+}
+
+.commonalityLabels {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    color: #737b70;
+    font-size: 0.68rem;
+    line-height: 1.35;
+}
+
+.commonalityLabels span {
+    max-width: 46%;
+}
+
+.commonalityLabels span:last-child {
+    text-align: right;
+}
+
 .settingsActions {
     padding: 22px 0 5px;
     display: flex;

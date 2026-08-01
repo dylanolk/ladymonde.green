@@ -21,7 +21,8 @@ function createRequest(
     phrase: string,
     featuresParams: FeaturesParams = {},
     includeWords = "",
-    excludeWords = ""
+    excludeWords = "",
+    wordCommonality = 0.5
 ): MondegreenRequest {
     const splitWords = (words: string) =>
         words.trim() ? words.trim().split(/\s+/) : []
@@ -31,6 +32,7 @@ function createRequest(
         settings: {
             exclude_words: splitWords(excludeWords),
             include_words: splitWords(includeWords),
+            minimum_word_commonality: wordCommonality,
             features_params: featuresParams
         }
     }
@@ -45,6 +47,7 @@ function Home() {
         useState<FeaturesParams>(() => createDefaultFeatures())
     const [includeWords, setIncludeWords] = useState("")
     const [excludeWords, setExcludeWords] = useState("")
+    const [wordCommonality, setWordCommonality] = useState(0.5)
     const [settingsAttention, setSettingsAttention] = useState(0)
     const lastWarmedFeatures = useRef<string | null>(null)
     const warmupRequestId = useRef(0)
@@ -109,7 +112,8 @@ function Home() {
                             phrase,
                             featuresParams,
                             includeWords,
-                            excludeWords
+                            excludeWords,
+                            wordCommonality
                         )
                     )
                 }
@@ -197,6 +201,8 @@ function Home() {
                         excludeWords={excludeWords}
                         onIncludeWordsChange={setIncludeWords}
                         onExcludeWordsChange={setExcludeWords}
+                        wordCommonality={wordCommonality}
+                        onWordCommonalityChange={setWordCommonality}
                         attentionSignal={settingsAttention}
                     />
                 </form>
