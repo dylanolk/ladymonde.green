@@ -7,6 +7,7 @@ export type FeaturesParams = {
     bleed_vowels?: boolean
     bleed_unstressed_vowels?: boolean
     bleed_t_d?: boolean
+    bleed_dh_t?: boolean
     bleed_ch_j?: boolean
 }
 

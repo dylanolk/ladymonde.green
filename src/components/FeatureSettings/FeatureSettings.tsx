@@ -11,6 +11,7 @@ const FEATURE_OPTIONS: Array<{ key: keyof FeaturesParams; label: string }> = [
     { key: "bleed_vowels", label: "Vowel bleed" },
     { key: "bleed_unstressed_vowels", label: "Unstressed vowel bleed" },
     { key: "bleed_t_d", label: "T / D bleed" },
+    { key: "bleed_dh_t", label: "DH / T bleed" },
     { key: "bleed_ch_j", label: "CH / J bleed" }
 ]
 
@@ -23,6 +24,7 @@ const INITIAL_FEATURES: FeaturesParams = {
     bleed_vowels: false,
     bleed_unstressed_vowels: false,
     bleed_t_d: false,
+    bleed_dh_t: false,
     bleed_ch_j: false
 }
 
