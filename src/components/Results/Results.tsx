@@ -12,6 +12,7 @@ import './Results.css'
 const RESULT_BATCH_SIZE = 40
 const INTERACTIVE_WORD_LIMIT = 1000
 const HOMOPHONE_PICKER_ID = "homophonePicker"
+const LONG_RESULT_HOMOPHONE_MARKER = "^"
 
 type ResultsProps = {
     data: MondegreenResponse | null
@@ -57,9 +58,7 @@ function wordAtPoint(
                 ? fallbackNode
                 : null
 
-    if (!node) {
-        return null
-    }
+    if (!node) return null
 
     const ranges: Array<{ wordIndex: number; start: number; end: number }> = []
     let wordStart = 0
@@ -74,8 +73,7 @@ function wordAtPoint(
         wordStart = wordEnd + 1
     }
 
-    const caretMatchesText =
-        caretNode === node && offset !== undefined
+    const caretMatchesText = caretNode === node && offset !== undefined
     const candidateRanges = caretMatchesText
         ? ranges.filter(
             ({ start, end }) => offset >= start && offset <= end
@@ -154,6 +152,19 @@ function Results({ data, isLoading, error, onExcludeWord }: ResultsProps) {
 
     function resolveResult(mondegreen: number[]) {
         return mondegreen.map(resolveWord).join(" ")
+    }
+
+    function resolveLongDisplayWord(groupId: number) {
+        const marker =
+            (homophones[groupId]?.length ?? 0) > 1
+                ? LONG_RESULT_HOMOPHONE_MARKER
+                : ""
+
+        return `${resolveWord(groupId)}${marker}`
+    }
+
+    function resolveLongDisplayResult(mondegreen: number[]) {
+        return mondegreen.map(resolveLongDisplayWord).join(" ")
     }
 
     useLayoutEffect(() => {
@@ -320,10 +331,9 @@ function Results({ data, isLoading, error, onExcludeWord }: ResultsProps) {
             return
         }
 
-        const words = mondegreen.map(resolveWord)
         const selected = wordAtPoint(
             event.currentTarget,
-            words,
+            mondegreen.map(resolveLongDisplayWord),
             event.clientX,
             event.clientY
         )
@@ -352,8 +362,7 @@ function Results({ data, isLoading, error, onExcludeWord }: ResultsProps) {
         }))
         if (variant) {
             setSelectionAnnouncement(
-                `${variant} selected for ${occurrenceCount} ${
-                    occurrenceCount === 1 ? "instance" : "instances"
+                `${variant} selected for ${occurrenceCount} ${occurrenceCount === 1 ? "instance" : "instances"
                 }.`
             )
         }
@@ -406,8 +415,7 @@ function Results({ data, isLoading, error, onExcludeWord }: ResultsProps) {
         : error
             ? ""
             : data
-                ? `${mondegreens.length} ${
-                    mondegreens.length === 1 ? "result" : "results"
+                ? `${mondegreens.length} ${mondegreens.length === 1 ? "result" : "results"
                 } generated.`
                 : ""
 
@@ -422,9 +430,20 @@ function Results({ data, isLoading, error, onExcludeWord }: ResultsProps) {
 
             <div className="resultsHeader">
                 <span>results</span>
-                {mondegreens.length > 0 && (
-                    <span>{mondegreens.length.toString().padStart(2, "0")}</span>
-                )}
+                <div className="resultsHeaderMeta">
+                    {!useInteractiveWords &&
+                        homophones.some((group) => group.length > 1) && (
+                            <span className="longResultLegend">
+                                <strong>{LONG_RESULT_HOMOPHONE_MARKER}</strong>
+                                homophone available
+                            </span>
+                        )}
+                    {mondegreens.length > 0 && (
+                        <span>
+                            {mondegreens.length.toString().padStart(2, "0")}
+                        </span>
+                    )}
+                </div>
             </div>
 
             {showHomophoneHint && mondegreens.length > 0 && !isLoading && (
@@ -451,59 +470,59 @@ function Results({ data, isLoading, error, onExcludeWord }: ResultsProps) {
                 selectedGroup.length > 0 &&
                 !isLoading &&
                 !error && (
-                <aside
-                    ref={pickerRef}
-                    id={HOMOPHONE_PICKER_ID}
-                    className={`homophonePicker ${selectedWord.placement}`}
-                    style={{ left: selectedWord.x, top: selectedWord.y }}
-                    role="dialog"
-                    aria-label={`Choose a homophone for ${selectedDisplayWord}`}
-                >
-                    <div className="homophonePickerHeader">
-                        <strong>Choose a homophone</strong>
-                        <span>
-                            updates {selectedOccurrenceCount}{" "}
-                            {selectedOccurrenceCount === 1
-                                ? "instance"
-                                : "instances"}
-                        </span>
-                    </div>
-                    <div
-                        className="homophoneOptions"
-                        style={{
-                            maxHeight: selectedWord.maxOptionsHeight
-                        }}
+                    <aside
+                        ref={pickerRef}
+                        id={HOMOPHONE_PICKER_ID}
+                        className={`homophonePicker ${selectedWord.placement}`}
+                        style={{ left: selectedWord.x, top: selectedWord.y }}
+                        role="dialog"
+                        aria-label={`Choose a homophone for ${selectedDisplayWord}`}
                     >
-                        {selectedGroup.map((variant, variantIndex) => (
-                            <button
-                                type="button"
-                                aria-pressed={
-                                    selectedVariantIndex === variantIndex
-                                }
-                                key={`${variant}-${variantIndex}`}
-                                onClick={() =>
-                                    chooseVariant(
-                                        selectedWord.groupId,
-                                        variantIndex
-                                    )
-                                }
-                            >
-                                <span>{variant}</span>
-                                {selectedVariantIndex === variantIndex && (
-                                    <span aria-hidden="true">✓</span>
-                                )}
-                            </button>
-                        ))}
-                    </div>
-                    <button
-                        type="button"
-                        className="excludeWordButton"
-                        onClick={excludeSelectedWord}
-                    >
-                        exclude “{selectedDisplayWord}”
-                    </button>
-                </aside>
-            )}
+                        <div className="homophonePickerHeader">
+                            <strong>Choose a homophone</strong>
+                            <span>
+                                updates {selectedOccurrenceCount}{" "}
+                                {selectedOccurrenceCount === 1
+                                    ? "instance"
+                                    : "instances"}
+                            </span>
+                        </div>
+                        <div
+                            className="homophoneOptions"
+                            style={{
+                                maxHeight: selectedWord.maxOptionsHeight
+                            }}
+                        >
+                            {selectedGroup.map((variant, variantIndex) => (
+                                <button
+                                    type="button"
+                                    aria-pressed={
+                                        selectedVariantIndex === variantIndex
+                                    }
+                                    key={`${variant}-${variantIndex}`}
+                                    onClick={() =>
+                                        chooseVariant(
+                                            selectedWord.groupId,
+                                            variantIndex
+                                        )
+                                    }
+                                >
+                                    <span>{variant}</span>
+                                    {selectedVariantIndex === variantIndex && (
+                                        <span aria-hidden="true">✓</span>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                        <button
+                            type="button"
+                            className="excludeWordButton"
+                            onClick={excludeSelectedWord}
+                        >
+                            exclude “{selectedDisplayWord}”
+                        </button>
+                    </aside>
+                )}
 
             {error && (
                 <p className="errorMessage" role="alert">
@@ -544,11 +563,10 @@ function Results({ data, isLoading, error, onExcludeWord }: ResultsProps) {
                                     </span>
                                     <p
                                         id={`result-${resultIndex}-text`}
-                                        className={`resultText ${
-                                            useInteractiveWords
-                                                ? "interactiveWords"
-                                                : "longResultText"
-                                        }`}
+                                        className={`resultText ${useInteractiveWords
+                                            ? "interactiveWords"
+                                            : "longResultText"
+                                            }`}
                                         tabIndex={
                                             useInteractiveWords ? undefined : -1
                                         }
@@ -561,11 +579,11 @@ function Results({ data, isLoading, error, onExcludeWord }: ResultsProps) {
                                             useInteractiveWords
                                                 ? undefined
                                                 : selectedWord?.focusTargetId ===
-                                                    `result-${resultIndex}-text`
+                                                `result-${resultIndex}-text`
                                         }
                                         aria-controls={
                                             !useInteractiveWords &&
-                                            selectedWord?.focusTargetId ===
+                                                selectedWord?.focusTargetId ===
                                                 `result-${resultIndex}-text`
                                                 ? HOMOPHONE_PICKER_ID
                                                 : undefined
@@ -608,11 +626,10 @@ function Results({ data, isLoading, error, onExcludeWord }: ResultsProps) {
                                                             <button
                                                                 id={triggerId}
                                                                 type="button"
-                                                                className={`resultWord${
-                                                                    hasHomophones
-                                                                        ? " hasHomophones"
-                                                                        : ""
-                                                                }`}
+                                                                className={`resultWord${hasHomophones
+                                                                    ? " hasHomophones"
+                                                                    : ""
+                                                                    }`}
                                                                 aria-label={`Choose a homophone for ${word}`}
                                                                 aria-haspopup="dialog"
                                                                 aria-expanded={
@@ -621,7 +638,7 @@ function Results({ data, isLoading, error, onExcludeWord }: ResultsProps) {
                                                                 }
                                                                 aria-controls={
                                                                     selectedWord?.triggerId ===
-                                                                    triggerId
+                                                                        triggerId
                                                                         ? HOMOPHONE_PICKER_ID
                                                                         : undefined
                                                                 }
@@ -639,7 +656,9 @@ function Results({ data, isLoading, error, onExcludeWord }: ResultsProps) {
                                                     )
                                                 }
                                             )
-                                            : resolveResult(mondegreen)}
+                                            : resolveLongDisplayResult(
+                                                mondegreen
+                                            )}
                                     </p>
                                     <button
                                         type="button"

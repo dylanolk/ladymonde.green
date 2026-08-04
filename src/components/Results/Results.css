@@ -16,6 +16,27 @@
     text-transform: uppercase;
 }
 
+.resultsHeaderMeta {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+}
+
+.longResultLegend {
+    display: inline-flex;
+    gap: 5px;
+    align-items: center;
+    color: var(--muted);
+    letter-spacing: 0.07em;
+}
+
+.longResultLegend strong {
+    color: var(--muted);
+    font-size: 0.68rem;
+    line-height: 0;
+    opacity: 0.8;
+}
+
 .exclusionHint {
     position: absolute;
     z-index: 12;
