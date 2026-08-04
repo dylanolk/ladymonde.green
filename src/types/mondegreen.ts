@@ -23,3 +23,8 @@ export type MondegreenRequest = {
         features_params?: FeaturesParams
     }
 }
+
+export type MondegreenResponse = {
+    mondegreens: number[][]
+    homophones: string[][]
+}

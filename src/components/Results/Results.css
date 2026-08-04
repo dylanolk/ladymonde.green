@@ -168,8 +168,14 @@
     color: var(--text);
 }
 
+.longResultText:focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: 4px;
+}
+
 .resultWord {
-    padding: 2px 1px;
+    position: relative;
+    padding: 2px 5px;
     border-radius: 3px;
     color: inherit;
     background: transparent;
@@ -177,10 +183,29 @@
     transition: color 140ms ease, background 140ms ease;
 }
 
+.resultWord.hasHomophones::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 0;
+    height: 0;
+    border-top: 4px solid var(--gold);
+    border-left: 4px solid transparent;
+    opacity: 0.7;
+    transition: border-top-color 140ms ease, opacity 140ms ease;
+}
+
 .resultWord:hover,
 .resultWord[aria-expanded="true"] {
     color: var(--accent-bright);
     background: rgba(157, 175, 104, 0.08);
+}
+
+.resultWord.hasHomophones:hover::after,
+.resultWord.hasHomophones[aria-expanded="true"]::after {
+    border-top-color: var(--accent-bright);
+    opacity: 1;
 }
 
 .resultWord:focus-visible {
@@ -251,42 +276,119 @@
     outline-offset: 2px;
 }
 
-.resultWordAction {
+.homophonePicker {
     position: fixed;
-    z-index: 10;
-    width: max-content;
-    padding: 5px;
+    z-index: 20;
+    width: min(260px, calc(100vw - 24px));
+    padding: 10px;
     border: 1px solid var(--border);
-    border-radius: 7px;
+    border-radius: 10px;
     background: var(--surface);
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
-    transform: translate(-50%, calc(-100% - 8px));
-    animation: wordActionArrive 140ms ease-out;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.36);
 }
 
-.resultWordAction::after {
+.homophonePicker.above {
+    transform: translate(-50%, calc(-100% - 8px));
+    animation: homophonePickerArriveAbove 140ms ease-out;
+}
+
+.homophonePicker.below {
+    transform: translate(-50%, 8px);
+    animation: homophonePickerArriveBelow 140ms ease-out;
+}
+
+.homophonePicker::after {
     content: "";
     position: absolute;
-    top: 100%;
     left: 50%;
     border: 5px solid transparent;
-    border-top-color: var(--border);
     transform: translateX(-50%);
 }
 
-.resultWordAction button {
-    padding: 6px 8px;
-    border-radius: 4px;
-    color: var(--text);
-    background: transparent;
-    font-size: 0.7rem;
-    white-space: nowrap;
-    cursor: pointer;
+.homophonePicker.above::after {
+    top: 100%;
+    border-top-color: var(--border);
 }
 
-.resultWordAction button:hover {
+.homophonePicker.below::after {
+    bottom: 100%;
+    border-bottom-color: var(--border);
+}
+
+.homophonePickerHeader {
+    padding: 3px 5px 9px;
+    display: grid;
+    gap: 2px;
+}
+
+.homophonePickerHeader strong {
+    color: var(--accent-bright);
+    font-size: 0.72rem;
+}
+
+.homophonePickerHeader span {
+    color: var(--muted);
+    font-family: Inter, "Segoe UI", sans-serif;
+    font-size: 0.68rem;
+}
+
+.homophoneOptions {
+    display: grid;
+    gap: 3px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+.homophoneOptions button,
+.excludeWordButton {
+    width: 100%;
+    padding: 8px 9px;
+    border-radius: 6px;
+    color: var(--text);
+    background: transparent;
+    font-size: 0.72rem;
+    text-align: left;
+    cursor: pointer;
+    overflow-wrap: anywhere;
+    transition: color 140ms ease, background 140ms ease;
+}
+
+.homophoneOptions button {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+}
+
+.homophoneOptions button:hover,
+.homophoneOptions button[aria-pressed="true"] {
     color: var(--accent-bright);
     background: rgba(157, 175, 104, 0.08);
+}
+
+.homophoneOptions button[aria-pressed="true"] span:last-child {
+    color: var(--gold);
+}
+
+.excludeWordButton {
+    margin-top: 8px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(197, 166, 103, 0.18);
+    border-radius: 0 0 6px 6px;
+    color: var(--muted);
+}
+
+.excludeWordButton:hover {
+    color: var(--danger);
+    background: rgba(212, 106, 106, 0.07);
+}
+
+.homophoneOptions button:focus-visible,
+.excludeWordButton:focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: -1px;
 }
 
 .errorMessage {
@@ -319,7 +421,7 @@
     animation-delay: 360ms;
 }
 
-@keyframes wordActionArrive {
+@keyframes homophonePickerArriveAbove {
     from {
         opacity: 0;
         transform: translate(-50%, calc(-100% - 4px));
@@ -328,6 +430,18 @@
     to {
         opacity: 1;
         transform: translate(-50%, calc(-100% - 8px));
+    }
+}
+
+@keyframes homophonePickerArriveBelow {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(-50%, 8px);
     }
 }
 

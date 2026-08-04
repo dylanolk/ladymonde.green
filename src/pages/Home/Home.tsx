@@ -10,7 +10,11 @@ import FeatureSettings, {
     createDefaultFeatures
 } from '../../components/FeatureSettings/FeatureSettings'
 import Results from '../../components/Results/Results'
-import type { FeaturesParams, MondegreenRequest } from '../../types/mondegreen'
+import type {
+    FeaturesParams,
+    MondegreenRequest,
+    MondegreenResponse
+} from '../../types/mondegreen'
 import './Home.css'
 
 const API_URL = import.meta.env.DEV
@@ -38,9 +42,43 @@ function createRequest(
     }
 }
 
+function isMondegreenResponse(value: unknown): value is MondegreenResponse {
+    if (!value || typeof value !== "object") return false
+
+    const response = value as Partial<MondegreenResponse>
+    const { mondegreens, homophones } = response
+    if (
+        !Array.isArray(mondegreens) ||
+        !Array.isArray(homophones)
+    ) {
+        return false
+    }
+
+    const homophonesAreValid = homophones.every(
+        (group) =>
+            Array.isArray(group) &&
+            group.length > 0 &&
+            group.every((word) => typeof word === "string")
+    )
+
+    return (
+        homophonesAreValid &&
+        mondegreens.every(
+            (mondegreen) =>
+                Array.isArray(mondegreen) &&
+                mondegreen.every(
+                    (groupId) =>
+                        Number.isInteger(groupId) &&
+                        groupId >= 0 &&
+                        groupId < homophones.length
+                )
+        )
+    )
+}
+
 function Home() {
     const [inputVal, setInputVal] = useState("")
-    const [resultsList, setResultsList] = useState<string[]>([])
+    const [results, setResults] = useState<MondegreenResponse | null>(null)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState("")
     const [featuresParams, setFeaturesParams] =
@@ -100,6 +138,7 @@ function Home() {
 
         setIsLoading(true)
         setError("")
+        setResults(null)
 
         try {
             const response = await fetch(
@@ -123,7 +162,12 @@ function Home() {
                 throw new Error(`Request failed with status ${response.status}`)
             }
 
-            setResultsList(await response.json())
+            const responseBody: unknown = await response.json()
+            if (!isMondegreenResponse(responseBody)) {
+                throw new Error("The server returned an unexpected response.")
+            }
+
+            setResults(responseBody)
         } catch (requestError) {
             console.error(requestError)
             setError("Something got lost in translation. Please try again.")
@@ -208,7 +252,7 @@ function Home() {
                 </form>
 
                 <Results
-                    items={resultsList}
+                    data={results}
                     isLoading={isLoading}
                     error={error}
                     onExcludeWord={addExcludedWord}

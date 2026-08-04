@@ -1,21 +1,33 @@
-import { MouseEvent, useEffect, useMemo, useState } from 'react'
+import {
+    MouseEvent,
+    useEffect,
+    useLayoutEffect,
+    useMemo,
+    useRef,
+    useState
+} from 'react'
+import type { MondegreenResponse } from '../../types/mondegreen'
 import './Results.css'
 
 const RESULT_BATCH_SIZE = 40
 const INTERACTIVE_WORD_LIMIT = 1000
+const HOMOPHONE_PICKER_ID = "homophonePicker"
 
 type ResultsProps = {
-    items: string[]
+    data: MondegreenResponse | null
     isLoading: boolean
     error: string
     onExcludeWord: (word: string) => void
 }
 
 type SelectedWord = {
-    word: string
+    groupId: number
+    triggerId: string
+    focusTargetId: string
     x: number
     y: number
-    id?: string
+    placement: "above" | "below"
+    maxOptionsHeight: number
 }
 
 type CaretDocument = Document & {
@@ -26,71 +38,160 @@ type CaretDocument = Document & {
     caretRangeFromPoint?: (x: number, y: number) => Range | null
 }
 
-function wordAtPoint(x: number, y: number) {
+function wordAtPoint(
+    element: HTMLParagraphElement,
+    words: string[],
+    x: number,
+    y: number
+) {
     const caretDocument = document as CaretDocument
     const caretPosition = caretDocument.caretPositionFromPoint?.(x, y)
     const caretRange = caretDocument.caretRangeFromPoint?.(x, y)
-    const node = caretPosition?.offsetNode ?? caretRange?.startContainer
-    let offset = caretPosition?.offset ?? caretRange?.startOffset
+    const caretNode = caretPosition?.offsetNode ?? caretRange?.startContainer
+    const offset = caretPosition?.offset ?? caretRange?.startOffset
+    const fallbackNode = element.firstChild
+    const node =
+        caretNode?.nodeType === Node.TEXT_NODE && element.contains(caretNode)
+            ? caretNode
+            : fallbackNode?.nodeType === Node.TEXT_NODE
+                ? fallbackNode
+                : null
 
-    if (!node || offset === undefined || node.nodeType !== Node.TEXT_NODE) {
+    if (!node) {
         return null
     }
 
-    const text = node.textContent ?? ""
-    if (offset === text.length) offset -= 1
-    if (offset < 0 || /\s/.test(text[offset])) return null
+    const ranges: Array<{ wordIndex: number; start: number; end: number }> = []
+    let wordStart = 0
 
-    let start = offset
-    let end = offset + 1
+    for (let wordIndex = 0; wordIndex < words.length; wordIndex += 1) {
+        const wordEnd = wordStart + words[wordIndex].length
 
-    while (start > 0 && !/\s/.test(text[start - 1])) start -= 1
-    while (end < text.length && !/\s/.test(text[end])) end += 1
+        if (wordEnd > wordStart) {
+            ranges.push({ wordIndex, start: wordStart, end: wordEnd })
+        }
 
-    return text.slice(start, end)
+        wordStart = wordEnd + 1
+    }
+
+    const caretMatchesText =
+        caretNode === node && offset !== undefined
+    const candidateRanges = caretMatchesText
+        ? ranges.filter(
+            ({ start, end }) => offset >= start && offset <= end
+        )
+        : []
+    const remainingRanges = ranges.filter(
+        ({ wordIndex }) =>
+            !candidateRanges.some(
+                (candidate) => candidate.wordIndex === wordIndex
+            )
+    )
+
+    for (const { wordIndex, start, end } of [
+        ...candidateRanges,
+        ...remainingRanges
+    ]) {
+        const range = document.createRange()
+        range.setStart(node, start)
+        range.setEnd(node, end)
+
+        for (const bounds of Array.from(range.getClientRects())) {
+            if (
+                x >= bounds.left &&
+                x <= bounds.right &&
+                y >= bounds.top &&
+                y <= bounds.bottom
+            ) {
+                return { wordIndex, bounds }
+            }
+        }
+    }
+
+    return null
 }
 
-function Results({ items, isLoading, error, onExcludeWord }: ResultsProps) {
+function Results({ data, isLoading, error, onExcludeWord }: ResultsProps) {
+    const [selectedVariants, setSelectedVariants] =
+        useState<Record<number, number>>({})
     const [selectedWord, setSelectedWord] = useState<SelectedWord | null>(null)
     const [copiedResult, setCopiedResult] = useState<number | null>(null)
-    const [showExclusionHint, setShowExclusionHint] = useState(false)
+    const [showHomophoneHint, setShowHomophoneHint] = useState(false)
+    const [selectionAnnouncement, setSelectionAnnouncement] = useState("")
     const [visibleResultCount, setVisibleResultCount] =
         useState(RESULT_BATCH_SIZE)
+    const pickerRef = useRef<HTMLElement>(null)
+    const mondegreens = data?.mondegreens ?? []
+    const homophones = data?.homophones ?? []
     const totalWordCount = useMemo(
         () =>
-            items.reduce(
-                (count, item) => count + (item.match(/\S+/g)?.length ?? 0),
+            mondegreens.reduce(
+                (count, mondegreen) => count + mondegreen.length,
                 0
             ),
-        [items]
+        [mondegreens]
     )
     const useInteractiveWords = totalWordCount < INTERACTIVE_WORD_LIMIT
 
-    useEffect(() => {
+    const occurrenceCounts = useMemo(() => {
+        const counts: Record<number, number> = {}
+
+        for (const mondegreen of mondegreens) {
+            for (const groupId of mondegreen) {
+                counts[groupId] = (counts[groupId] ?? 0) + 1
+            }
+        }
+
+        return counts
+    }, [mondegreens])
+
+    function resolveWord(groupId: number) {
+        const group = homophones[groupId]
+        if (!group?.length) return ""
+
+        return group[selectedVariants[groupId] ?? 0] ?? group[0]
+    }
+
+    function resolveResult(mondegreen: number[]) {
+        return mondegreen.map(resolveWord).join(" ")
+    }
+
+    useLayoutEffect(() => {
         setVisibleResultCount(RESULT_BATCH_SIZE)
+        setSelectedVariants({})
         setSelectedWord(null)
-    }, [items])
+        setCopiedResult(null)
+        setSelectionAnnouncement("")
+    }, [data])
 
     useEffect(() => {
-        if (items.length === 0) return
+        if (mondegreens.length === 0) return
 
         try {
-            if (sessionStorage.getItem("ladymonde-exclusion-hint-seen")) return
+            if (sessionStorage.getItem("ladymonde-homophone-hint-seen")) return
         } catch {
             // The hint can still work when browser storage is unavailable.
         }
 
-        setShowExclusionHint(true)
-    }, [items])
+        setShowHomophoneHint(true)
+    }, [mondegreens])
 
     useEffect(() => {
         if (!selectedWord) return
+
+        const focusOption = requestAnimationFrame(() => {
+            pickerRef.current
+                ?.querySelector<HTMLButtonElement>('[aria-pressed="true"]')
+                ?.focus()
+        })
 
         function closeOnOutsideClick(event: PointerEvent) {
             const target = event.target
             if (
                 target instanceof Element &&
-                target.closest(".resultWordAction")
+                target.closest(
+                    ".homophonePicker, .resultWord, .longResultText"
+                )
             ) {
                 return
             }
@@ -98,68 +199,185 @@ function Results({ items, isLoading, error, onExcludeWord }: ResultsProps) {
             setSelectedWord(null)
         }
 
+        function closeOnEscape(event: KeyboardEvent) {
+            if (event.key !== "Escape") return
+
+            const focusTargetId = selectedWord?.focusTargetId
+            setSelectedWord(null)
+            requestAnimationFrame(() => {
+                if (focusTargetId) {
+                    document.getElementById(focusTargetId)?.focus()
+                }
+            })
+        }
+
+        function closeOnViewportChange() {
+            const restoreFocus = pickerRef.current?.contains(
+                document.activeElement
+            )
+            const focusTargetId = selectedWord?.focusTargetId
+            setSelectedWord(null)
+            if (restoreFocus) {
+                requestAnimationFrame(() => {
+                    if (focusTargetId) {
+                        document.getElementById(focusTargetId)?.focus()
+                    }
+                })
+            }
+        }
+
         document.addEventListener("pointerdown", closeOnOutsideClick)
-        return () => document.removeEventListener("pointerdown", closeOnOutsideClick)
+        document.addEventListener("keydown", closeOnEscape)
+        window.addEventListener("resize", closeOnViewportChange)
+        window.addEventListener("scroll", closeOnViewportChange)
+
+        return () => {
+            cancelAnimationFrame(focusOption)
+            document.removeEventListener("pointerdown", closeOnOutsideClick)
+            document.removeEventListener("keydown", closeOnEscape)
+            window.removeEventListener("resize", closeOnViewportChange)
+            window.removeEventListener("scroll", closeOnViewportChange)
+        }
     }, [selectedWord])
 
-    function dismissExclusionHint() {
-        setShowExclusionHint(false)
+    function dismissHomophoneHint() {
+        setShowHomophoneHint(false)
         try {
-            sessionStorage.setItem("ladymonde-exclusion-hint-seen", "true")
+            sessionStorage.setItem("ladymonde-homophone-hint-seen", "true")
         } catch {
             // Dismissing the hint should not depend on browser storage.
         }
     }
 
-    function selectWord(event: MouseEvent<HTMLParagraphElement>) {
-        if (!window.getSelection()?.isCollapsed) return
+    function openWordPicker(
+        groupId: number,
+        triggerId: string,
+        focusTargetId: string,
+        bounds: DOMRect
+    ) {
+        dismissHomophoneHint()
 
-        const word = wordAtPoint(event.clientX, event.clientY)
-        if (!word) return
+        if (selectedWord?.triggerId === triggerId) {
+            setSelectedWord(null)
+            return
+        }
 
-        dismissExclusionHint()
+        const optionCount = homophones[groupId]?.length ?? 0
+        const pickerChromeHeight = 124
+        const estimatedPickerHeight = Math.min(
+            384,
+            pickerChromeHeight + optionCount * 38
+        )
+        const spaceAbove = bounds.top - 20
+        const spaceBelow = window.innerHeight - bounds.bottom - 20
+        const placement =
+            spaceAbove >= estimatedPickerHeight || spaceAbove >= spaceBelow
+                ? "above"
+                : "below"
+        const availableSpace =
+            placement === "above" ? spaceAbove : spaceBelow
+
         setSelectedWord({
-            word,
-            x: Math.max(90, Math.min(event.clientX, window.innerWidth - 90)),
-            y: event.clientY - 8
+            groupId,
+            triggerId,
+            focusTargetId,
+            x: Math.max(
+                132,
+                Math.min(
+                    bounds.left + bounds.width / 2,
+                    window.innerWidth - 132
+                )
+            ),
+            y: placement === "above" ? bounds.top : bounds.bottom,
+            placement,
+            maxOptionsHeight: Math.max(
+                48,
+                Math.min(260, availableSpace - pickerChromeHeight)
+            )
         })
     }
 
-    function selectInteractiveWord(
+    function selectWord(
         event: MouseEvent<HTMLButtonElement>,
-        word: string,
-        id: string
+        groupId: number,
+        triggerId: string
     ) {
-        dismissExclusionHint()
-        const bounds = event.currentTarget.getBoundingClientRect()
-
-        setSelectedWord((current) =>
-            current?.id === id
-                ? null
-                : {
-                    word,
-                    id,
-                    x: Math.max(
-                        90,
-                        Math.min(
-                            bounds.left + bounds.width / 2,
-                            window.innerWidth - 90
-                        )
-                    ),
-                    y: bounds.top
-                }
+        openWordPicker(
+            groupId,
+            triggerId,
+            triggerId,
+            event.currentTarget.getBoundingClientRect()
         )
+    }
+
+    function selectLongResultWord(
+        event: MouseEvent<HTMLParagraphElement>,
+        mondegreen: number[],
+        resultIndex: number
+    ) {
+        if (!window.getSelection()?.isCollapsed) {
+            setSelectedWord(null)
+            return
+        }
+
+        const words = mondegreen.map(resolveWord)
+        const selected = wordAtPoint(
+            event.currentTarget,
+            words,
+            event.clientX,
+            event.clientY
+        )
+
+        if (!selected) {
+            setSelectedWord(null)
+            return
+        }
+
+        openWordPicker(
+            mondegreen[selected.wordIndex],
+            `result-${resultIndex}-word-${selected.wordIndex}`,
+            `result-${resultIndex}-text`,
+            selected.bounds
+        )
+    }
+
+    function chooseVariant(groupId: number, variantIndex: number) {
+        const variant = homophones[groupId]?.[variantIndex]
+        const occurrenceCount = occurrenceCounts[groupId] ?? 0
+        const focusTargetId = selectedWord?.focusTargetId
+
+        setSelectedVariants((current) => ({
+            ...current,
+            [groupId]: variantIndex
+        }))
+        if (variant) {
+            setSelectionAnnouncement(
+                `${variant} selected for ${occurrenceCount} ${
+                    occurrenceCount === 1 ? "instance" : "instances"
+                }.`
+            )
+        }
+        setSelectedWord(null)
+        requestAnimationFrame(() => {
+            if (focusTargetId) {
+                document.getElementById(focusTargetId)?.focus()
+            }
+        })
     }
 
     function excludeSelectedWord() {
         if (!selectedWord) return
-        onExcludeWord(selectedWord.word)
+        const { focusTargetId } = selectedWord
+        onExcludeWord(resolveWord(selectedWord.groupId))
         setSelectedWord(null)
+        requestAnimationFrame(() => {
+            document.getElementById(focusTargetId)?.focus()
+        })
     }
 
-    async function copyResult(result: string, resultIndex: number) {
+    async function copyResult(mondegreen: number[], resultIndex: number) {
         try {
-            await navigator.clipboard.writeText(result)
+            await navigator.clipboard.writeText(resolveResult(mondegreen))
             setCopiedResult(resultIndex)
             window.setTimeout(() => {
                 setCopiedResult((current) =>
@@ -171,46 +389,129 @@ function Results({ items, isLoading, error, onExcludeWord }: ResultsProps) {
         }
     }
 
+    const selectedGroup = selectedWord
+        ? homophones[selectedWord.groupId] ?? []
+        : []
+    const selectedVariantIndex = selectedWord
+        ? selectedVariants[selectedWord.groupId] ?? 0
+        : 0
+    const selectedDisplayWord = selectedWord
+        ? resolveWord(selectedWord.groupId)
+        : ""
+    const selectedOccurrenceCount = selectedWord
+        ? occurrenceCounts[selectedWord.groupId] ?? 0
+        : 0
+    const responseAnnouncement = isLoading
+        ? "Generating results."
+        : error
+            ? ""
+            : data
+                ? `${mondegreens.length} ${
+                    mondegreens.length === 1 ? "result" : "results"
+                } generated.`
+                : ""
+
     return (
-        <section className="results" aria-live="polite" aria-busy={isLoading}>
+        <section className="results" aria-busy={isLoading}>
+            <p className="visuallyHidden" role="status">
+                {responseAnnouncement}
+            </p>
+            <p className="visuallyHidden" role="status">
+                {selectionAnnouncement}
+            </p>
+
             <div className="resultsHeader">
                 <span>results</span>
-                {items.length > 0 && (
-                    <span>{items.length.toString().padStart(2, "0")}</span>
+                {mondegreens.length > 0 && (
+                    <span>{mondegreens.length.toString().padStart(2, "0")}</span>
                 )}
             </div>
 
-            {showExclusionHint && !isLoading && (
-                <aside className="exclusionHint" aria-label="Result word tip">
+            {showHomophoneHint && mondegreens.length > 0 && !isLoading && (
+                <aside className="exclusionHint" aria-label="Homophone selection tip">
                     <span className="hintIcon" aria-hidden="true">✦</span>
                     <div>
-                        <strong>Fine-tune your results</strong>
-                        <p>Don’t like a word? Click it to add it to your exclusions.</p>
+                        <strong>Fine-tune every result</strong>
+                        <p>
+                            Click any word to choose a homophone. Your choice
+                            updates every matching word.
+                        </p>
                     </div>
                     <button
                         type="button"
-                        aria-label="Dismiss result word tip"
-                        onClick={dismissExclusionHint}
+                        aria-label="Dismiss homophone selection tip"
+                        onClick={dismissHomophoneHint}
                     >
                         ×
                     </button>
                 </aside>
             )}
 
-            {selectedWord && (
+            {selectedWord &&
+                selectedGroup.length > 0 &&
+                !isLoading &&
+                !error && (
                 <aside
-                    className="resultWordAction"
+                    ref={pickerRef}
+                    id={HOMOPHONE_PICKER_ID}
+                    className={`homophonePicker ${selectedWord.placement}`}
                     style={{ left: selectedWord.x, top: selectedWord.y }}
+                    role="dialog"
+                    aria-label={`Choose a homophone for ${selectedDisplayWord}`}
                 >
-                    <button type="button" onClick={excludeSelectedWord}>
-                        exclude “{selectedWord.word}”
+                    <div className="homophonePickerHeader">
+                        <strong>Choose a homophone</strong>
+                        <span>
+                            updates {selectedOccurrenceCount}{" "}
+                            {selectedOccurrenceCount === 1
+                                ? "instance"
+                                : "instances"}
+                        </span>
+                    </div>
+                    <div
+                        className="homophoneOptions"
+                        style={{
+                            maxHeight: selectedWord.maxOptionsHeight
+                        }}
+                    >
+                        {selectedGroup.map((variant, variantIndex) => (
+                            <button
+                                type="button"
+                                aria-pressed={
+                                    selectedVariantIndex === variantIndex
+                                }
+                                key={`${variant}-${variantIndex}`}
+                                onClick={() =>
+                                    chooseVariant(
+                                        selectedWord.groupId,
+                                        variantIndex
+                                    )
+                                }
+                            >
+                                <span>{variant}</span>
+                                {selectedVariantIndex === variantIndex && (
+                                    <span aria-hidden="true">✓</span>
+                                )}
+                            </button>
+                        ))}
+                    </div>
+                    <button
+                        type="button"
+                        className="excludeWordButton"
+                        onClick={excludeSelectedWord}
+                    >
+                        exclude “{selectedDisplayWord}”
                     </button>
                 </aside>
             )}
 
-            {error && <p className="errorMessage">{error}</p>}
+            {error && (
+                <p className="errorMessage" role="alert">
+                    {error}
+                </p>
+            )}
 
-            {!error && items.length === 0 && !isLoading && (
+            {!error && mondegreens.length === 0 && !isLoading && (
                 <div className="emptyState">
                     <span aria-hidden="true">···</span>
                     <p>Your alternate phrases will appear here</p>
@@ -223,14 +524,14 @@ function Results({ items, isLoading, error, onExcludeWord }: ResultsProps) {
                 </div>
             )}
 
-            {!isLoading && items.length > 0 && (
+            {!isLoading && mondegreens.length > 0 && (
                 <>
                     <ol className="resultsList">
-                        {items
+                        {mondegreens
                             .slice(0, visibleResultCount)
-                            .map((item, resultIndex) => (
+                            .map((mondegreen, resultIndex) => (
                                 <li
-                                    key={`${item}-${resultIndex}`}
+                                    key={resultIndex}
                                     style={{
                                         animationDelay: `${Math.min(
                                             resultIndex % RESULT_BATCH_SIZE,
@@ -242,60 +543,110 @@ function Results({ items, isLoading, error, onExcludeWord }: ResultsProps) {
                                         {String(resultIndex + 1).padStart(2, "0")}
                                     </span>
                                     <p
-                                        className={`resultText${
+                                        id={`result-${resultIndex}-text`}
+                                        className={`resultText ${
                                             useInteractiveWords
-                                                ? " interactiveWords"
-                                                : ""
+                                                ? "interactiveWords"
+                                                : "longResultText"
                                         }`}
+                                        tabIndex={
+                                            useInteractiveWords ? undefined : -1
+                                        }
+                                        aria-haspopup={
+                                            useInteractiveWords
+                                                ? undefined
+                                                : "dialog"
+                                        }
+                                        aria-expanded={
+                                            useInteractiveWords
+                                                ? undefined
+                                                : selectedWord?.focusTargetId ===
+                                                    `result-${resultIndex}-text`
+                                        }
+                                        aria-controls={
+                                            !useInteractiveWords &&
+                                            selectedWord?.focusTargetId ===
+                                                `result-${resultIndex}-text`
+                                                ? HOMOPHONE_PICKER_ID
+                                                : undefined
+                                        }
+                                        title={
+                                            useInteractiveWords
+                                                ? undefined
+                                                : "Click a word to choose a homophone"
+                                        }
                                         onClick={
                                             useInteractiveWords
                                                 ? undefined
-                                                : selectWord
+                                                : (event) =>
+                                                    selectLongResultWord(
+                                                        event,
+                                                        mondegreen,
+                                                        resultIndex
+                                                    )
                                         }
-                                        title="Click a word to exclude it"
                                     >
                                         {useInteractiveWords
-                                            ? item
-                                                .split(/(\s+)/)
-                                                .map((token, tokenIndex) => {
-                                                    if (/^\s+$/.test(token)) {
-                                                        return (
-                                                            <span key={tokenIndex}>
-                                                                {token}
-                                                            </span>
-                                                        )
-                                                    }
-
-                                                    const tokenId =
-                                                        `${resultIndex}-${tokenIndex}`
+                                            ? mondegreen.map(
+                                                (groupId, wordIndex) => {
+                                                    const triggerId =
+                                                        `result-${resultIndex}-word-${wordIndex}`
+                                                    const word =
+                                                        resolveWord(groupId)
+                                                    const hasHomophones =
+                                                        (
+                                                            homophones[groupId]
+                                                                ?.length ?? 0
+                                                        ) > 1
 
                                                     return (
-                                                        <button
-                                                            type="button"
-                                                            className="resultWord"
-                                                            aria-expanded={
-                                                                selectedWord?.id ===
-                                                                tokenId
-                                                            }
-                                                            key={tokenIndex}
-                                                            onClick={(event) =>
-                                                                selectInteractiveWord(
-                                                                    event,
-                                                                    token,
-                                                                    tokenId
-                                                                )
-                                                            }
+                                                        <span
+                                                            className="resultWordSlot"
+                                                            key={triggerId}
                                                         >
-                                                            {token}
-                                                        </button>
+                                                            {wordIndex > 0 && " "}
+                                                            <button
+                                                                id={triggerId}
+                                                                type="button"
+                                                                className={`resultWord${
+                                                                    hasHomophones
+                                                                        ? " hasHomophones"
+                                                                        : ""
+                                                                }`}
+                                                                aria-label={`Choose a homophone for ${word}`}
+                                                                aria-haspopup="dialog"
+                                                                aria-expanded={
+                                                                    selectedWord?.triggerId ===
+                                                                    triggerId
+                                                                }
+                                                                aria-controls={
+                                                                    selectedWord?.triggerId ===
+                                                                    triggerId
+                                                                        ? HOMOPHONE_PICKER_ID
+                                                                        : undefined
+                                                                }
+                                                                onClick={(event) =>
+                                                                    selectWord(
+                                                                        event,
+                                                                        groupId,
+                                                                        triggerId
+                                                                    )
+                                                                }
+                                                            >
+                                                                {word}
+                                                            </button>
+                                                        </span>
                                                     )
-                                                })
-                                            : item}
+                                                }
+                                            )
+                                            : resolveResult(mondegreen)}
                                     </p>
                                     <button
                                         type="button"
                                         className="copyButton"
-                                        onClick={() => copyResult(item, resultIndex)}
+                                        onClick={() =>
+                                            copyResult(mondegreen, resultIndex)
+                                        }
                                         aria-label={
                                             copiedResult === resultIndex
                                                 ? `Result ${resultIndex + 1} copied`
@@ -317,19 +668,22 @@ function Results({ items, isLoading, error, onExcludeWord }: ResultsProps) {
                             ))}
                     </ol>
 
-                    {visibleResultCount < items.length && (
+                    {visibleResultCount < mondegreens.length && (
                         <button
                             type="button"
                             className="showMoreResults"
                             onClick={() =>
                                 setVisibleResultCount((current) =>
-                                    Math.min(current + RESULT_BATCH_SIZE, items.length)
+                                    Math.min(
+                                        current + RESULT_BATCH_SIZE,
+                                        mondegreens.length
+                                    )
                                 )
                             }
                         >
                             show {Math.min(
                                 RESULT_BATCH_SIZE,
-                                items.length - visibleResultCount
+                                mondegreens.length - visibleResultCount
                             )} more
                         </button>
                     )}
