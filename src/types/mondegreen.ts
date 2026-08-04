@@ -5,6 +5,7 @@ export type FeaturesParams = {
     bleed_gutterals?: boolean
     bleed_s_z?: boolean
     bleed_vowels?: boolean
+    bleed_unstressed_vowels?: boolean
     bleed_t_d?: boolean
     bleed_ch_j?: boolean
 }
