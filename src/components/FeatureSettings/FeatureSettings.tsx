@@ -19,19 +19,19 @@ const FEATURE_OPTIONS: Array<{ key: keyof FeaturesParams; label: string }> = [
 ]
 
 const INITIAL_FEATURES: FeaturesParams = {
-    h_dropping: false,
-    consonant_reduction: false,
-    ing_reduction: false,
-    bleed_plosives: false,
-    bleed_gutterals: false,
-    bleed_s_z: false,
-    bleed_s_sh: false,
-    bleed_f_v: false,
-    bleed_vowels: false,
+    h_dropping: true,
+    consonant_reduction: true,
+    ing_reduction: true,
+    bleed_plosives: true,
+    bleed_gutterals: true,
+    bleed_s_z: true,
+    bleed_s_sh: true,
+    bleed_f_v: true,
+    bleed_vowels: true,
     bleed_unstressed_vowels: false,
-    bleed_t_d: false,
-    bleed_dh_t: false,
-    bleed_ch_j: false
+    bleed_t_d: true,
+    bleed_dh_t: true,
+    bleed_ch_j: true
 }
 
 export function createDefaultFeatures(enabled?: boolean): FeaturesParams {
