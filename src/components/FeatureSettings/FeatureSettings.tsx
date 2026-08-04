@@ -159,8 +159,8 @@ function FeatureSettings({
                         <label htmlFor="wordCommonality">word commonality</label>
                         <button
                             type="button"
-                            disabled={wordCommonality === 0.5}
-                            onClick={() => onWordCommonalityChange(0.5)}
+                            disabled={wordCommonality === 0.4}
+                            onClick={() => onWordCommonalityChange(0.4)}
                         >
                             reset
                         </button>
