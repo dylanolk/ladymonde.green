@@ -1,9 +1,12 @@
 export type FeaturesParams = {
     h_dropping?: boolean
     consonant_reduction?: boolean
+    ing_reduction?: boolean
     bleed_plosives?: boolean
     bleed_gutterals?: boolean
     bleed_s_z?: boolean
+    bleed_s_sh?: boolean
+    bleed_f_v?: boolean
     bleed_vowels?: boolean
     bleed_unstressed_vowels?: boolean
     bleed_t_d?: boolean
