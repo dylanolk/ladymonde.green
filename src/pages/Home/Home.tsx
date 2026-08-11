@@ -80,6 +80,7 @@ function Home() {
     const [inputVal, setInputVal] = useState("")
     const [results, setResults] = useState<MondegreenResponse | null>(null)
     const [isLoading, setIsLoading] = useState(false)
+    const [isWarmingUp, setIsWarmingUp] = useState(true)
     const [error, setError] = useState("")
     const [featuresParams, setFeaturesParams] =
         useState<FeaturesParams>(() => createDefaultFeatures())
@@ -117,6 +118,10 @@ function Home() {
                 ) {
                     console.debug("Backend warm-up request did not complete.", error)
                 }
+            } finally {
+                if (requestId === warmupRequestId.current) {
+                    setIsWarmingUp(false)
+                }
             }
         }
 
@@ -127,6 +132,7 @@ function Home() {
             window.clearTimeout(timeout)
             window.clearInterval(interval)
             controller.abort()
+            setIsWarmingUp(false)
         }
     }, [featuresParams])
 
@@ -203,7 +209,17 @@ function Home() {
     }
 
     return (
-        <main className="home">
+        <>
+            {isWarmingUp && (
+                <div className="warmupOverlay" role="status" aria-live="polite">
+                    <div className="warmupMessage">
+                        <span className="warmupSpinner" aria-hidden="true" />
+                        <p>ladymonde.green is starting up, this may take 20 seconds</p>
+                    </div>
+                </div>
+            )}
+
+            <main className="home">
             <header className="siteHeader">
                 <a className="wordmark" href="/" aria-label="ladymonde.green home">
                     <span className="wordmarkMark" aria-hidden="true">
@@ -261,7 +277,8 @@ function Home() {
 
             <footer>
             </footer>
-        </main>
+            </main>
+        </>
     )
 }
 
