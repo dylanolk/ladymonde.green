@@ -19,6 +19,7 @@ type ResultsProps = {
     isLoading: boolean
     error: string
     onExcludeWord: (word: string) => void
+    usesNearHomophones: boolean
 }
 
 type SelectedWord = {
@@ -109,7 +110,13 @@ function wordAtPoint(
     return null
 }
 
-function Results({ data, isLoading, error, onExcludeWord }: ResultsProps) {
+function Results({
+    data,
+    isLoading,
+    error,
+    onExcludeWord,
+    usesNearHomophones
+}: ResultsProps) {
     const [selectedVariants, setSelectedVariants] =
         useState<Record<number, number>>({})
     const [selectedWord, setSelectedWord] = useState<SelectedWord | null>(null)
@@ -121,6 +128,16 @@ function Results({ data, isLoading, error, onExcludeWord }: ResultsProps) {
     const pickerRef = useRef<HTMLElement>(null)
     const mondegreens = data?.mondegreens ?? []
     const homophones = data?.homophones ?? []
+    const homophoneLabel = usesNearHomophones ? (
+        <>
+            <em>near</em> homophone
+        </>
+    ) : (
+        <>homophone</>
+    )
+    const homophoneAriaLabel = usesNearHomophones
+        ? "near homophone"
+        : "homophone"
     const totalWordCount = useMemo(
         () =>
             mondegreens.reduce(
@@ -452,7 +469,7 @@ function Results({ data, isLoading, error, onExcludeWord }: ResultsProps) {
                     <div>
                         <strong>Fine-tune every result</strong>
                         <p>
-                            Click any word to choose a homophone. Your choice
+                            Click any word to choose a {homophoneLabel}. Your choice
                             updates every matching word.
                         </p>
                     </div>
@@ -476,10 +493,10 @@ function Results({ data, isLoading, error, onExcludeWord }: ResultsProps) {
                         className={`homophonePicker ${selectedWord.placement}`}
                         style={{ left: selectedWord.x, top: selectedWord.y }}
                         role="dialog"
-                        aria-label={`Choose a homophone for ${selectedDisplayWord}`}
+                        aria-label={`Choose a ${homophoneAriaLabel} for ${selectedDisplayWord}`}
                     >
                         <div className="homophonePickerHeader">
-                            <strong>Choose a homophone</strong>
+                            <strong>Choose a {homophoneLabel}</strong>
                             <span>
                                 updates {selectedOccurrenceCount}{" "}
                                 {selectedOccurrenceCount === 1
@@ -591,7 +608,7 @@ function Results({ data, isLoading, error, onExcludeWord }: ResultsProps) {
                                         title={
                                             useInteractiveWords
                                                 ? undefined
-                                                : "Click a word to choose a homophone"
+                                                : `Click a word to choose a ${homophoneAriaLabel}`
                                         }
                                         onClick={
                                             useInteractiveWords
@@ -630,7 +647,7 @@ function Results({ data, isLoading, error, onExcludeWord }: ResultsProps) {
                                                                     ? " hasHomophones"
                                                                     : ""
                                                                     }`}
-                                                                aria-label={`Choose a homophone for ${word}`}
+                                                                aria-label={`Choose a ${homophoneAriaLabel} for ${word}`}
                                                                 aria-haspopup="dialog"
                                                                 aria-expanded={
                                                                     selectedWord?.triggerId ===

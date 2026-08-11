@@ -178,7 +178,7 @@ function FeatureSettings({
                     />
                     <div className="commonalityLabels" aria-hidden="true">
                         <span>use less common words</span>
-                        <span>excluded uncommon words</span>
+                        <span>exclude uncommon words</span>
                     </div>
                 </div>
 

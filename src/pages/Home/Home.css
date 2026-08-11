@@ -62,8 +62,22 @@
     text-decoration: none;
 }
 
-.wordmark > span:last-child span {
+.wordmarkText > span:first-child > span {
     color: var(--accent);
+}
+
+.wordmarkText {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.wordmarkTagline {
+    color: var(--muted);
+    font-family: Inter, "Segoe UI", sans-serif;
+    font-size: 0.62rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
 }
 
 .wordmarkMark {

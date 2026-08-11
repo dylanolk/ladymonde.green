@@ -90,6 +90,9 @@ function Home() {
     const [settingsAttention, setSettingsAttention] = useState(0)
     const lastWarmedFeatures = useRef<string | null>(null)
     const warmupRequestId = useRef(0)
+    const isFirstSessionWarmup = useRef(true)
+    const warmupStartedAt = useRef<number | null>(null)
+    const warmupHideTimeout = useRef<number | null>(null)
 
     useEffect(() => {
         const serializedFeatures = JSON.stringify(featuresParams)
@@ -100,6 +103,11 @@ function Home() {
         const sendWarmup = async () => {
             lastWarmedFeatures.current = serializedFeatures
             const requestId = ++warmupRequestId.current
+            const isFirstWarmup = isFirstSessionWarmup.current
+            isFirstSessionWarmup.current = false
+            if (isFirstWarmup) {
+                warmupStartedAt.current = performance.now()
+            }
 
             try {
                 await fetch(API_URL, {
@@ -120,7 +128,15 @@ function Home() {
                 }
             } finally {
                 if (requestId === warmupRequestId.current) {
-                    setIsWarmingUp(false)
+                    const elapsed = warmupStartedAt.current === null
+                        ? 0
+                        : performance.now() - warmupStartedAt.current
+                    const remainingDisplayTime = Math.max(0, 500 - elapsed)
+
+                    warmupHideTimeout.current = window.setTimeout(() => {
+                        setIsWarmingUp(false)
+                        warmupHideTimeout.current = null
+                    }, remainingDisplayTime)
                 }
             }
         }
@@ -132,7 +148,13 @@ function Home() {
             window.clearTimeout(timeout)
             window.clearInterval(interval)
             controller.abort()
-            setIsWarmingUp(false)
+            if (warmupHideTimeout.current !== null) {
+                window.clearTimeout(warmupHideTimeout.current)
+                warmupHideTimeout.current = null
+            }
+            if (!isFirstSessionWarmup.current) {
+                setIsWarmingUp(false)
+            }
         }
     }, [featuresParams])
 
@@ -214,69 +236,76 @@ function Home() {
                 <div className="warmupOverlay" role="status" aria-live="polite">
                     <div className="warmupMessage">
                         <span className="warmupSpinner" aria-hidden="true" />
-                        <p>ladymonde.green is starting up, this may take 20 seconds</p>
+                        <p>ladymonde.green is starting up, this may take 30 seconds</p>
                     </div>
                 </div>
             )}
 
             <main className="home">
-            <header className="siteHeader">
+                <header className="siteHeader">
                 <a className="wordmark" href="/" aria-label="ladymonde.green home">
                     <span className="wordmarkMark" aria-hidden="true">
                         <span>L</span>
                     </span>
-                    <span>ladymonde<span>.green</span></span>
+                    <span className="wordmarkText">
+                        <span>ladymonde<span>.green</span></span>
+                        <span className="wordmarkTagline">a soundalike generator</span>
+                    </span>
                 </a>
-            </header>
+                </header>
 
-            <section className="generator" aria-label="Mondegreen generator">
-                <form className="generatorForm" onSubmit={generateMondegreens}>
-                    <label className="visuallyHidden" htmlFor="phrase">your phrase</label>
-                    <div className="inputRow">
-                        <textarea
-                            id="phrase"
-                            className={`phraseInput${inputVal ? " hasValue" : ""}`}
-                            value={inputVal}
-                            rows={1}
-                            autoComplete="off"
-                            autoFocus
-                            placeholder="type a phrase..."
-                            onChange={updatePhrase}
-                            onKeyDown={submitOnEnter}
+                <section className="generator" aria-label="Mondegreen generator">
+                    <form className="generatorForm" onSubmit={generateMondegreens}>
+                        <label className="visuallyHidden" htmlFor="phrase">your phrase</label>
+                        <div className="inputRow">
+                            <textarea
+                                id="phrase"
+                                className={`phraseInput${inputVal ? " hasValue" : ""}`}
+                                value={inputVal}
+                                rows={1}
+                                autoComplete="off"
+                                autoFocus
+                                placeholder="type a phrase..."
+                                onChange={updatePhrase}
+                                onKeyDown={submitOnEnter}
+                            />
+                            <button
+                                type="submit"
+                                className="submitButton"
+                                disabled={!inputVal.trim() || isLoading}
+                            >
+                                {isLoading ? "processing..." : "generate"}
+                                <span aria-hidden="true">❧</span>
+                            </button>
+                        </div>
+
+                        <FeatureSettings
+                            value={featuresParams}
+                            onChange={setFeaturesParams}
+                            includeWords={includeWords}
+                            excludeWords={excludeWords}
+                            onIncludeWordsChange={setIncludeWords}
+                            onExcludeWordsChange={setExcludeWords}
+                            wordCommonality={wordCommonality}
+                            onWordCommonalityChange={setWordCommonality}
+                            attentionSignal={settingsAttention}
                         />
-                        <button
-                            type="submit"
-                            className="submitButton"
-                            disabled={!inputVal.trim() || isLoading}
-                        >
-                            {isLoading ? "processing..." : "generate"}
-                            <span aria-hidden="true">❧</span>
-                        </button>
-                    </div>
+                    </form>
 
-                    <FeatureSettings
-                        value={featuresParams}
-                        onChange={setFeaturesParams}
-                        includeWords={includeWords}
-                        excludeWords={excludeWords}
-                        onIncludeWordsChange={setIncludeWords}
-                        onExcludeWordsChange={setExcludeWords}
-                        wordCommonality={wordCommonality}
-                        onWordCommonalityChange={setWordCommonality}
-                        attentionSignal={settingsAttention}
+                    <Results
+                        data={results}
+                        isLoading={isLoading}
+                        error={error}
+                        onExcludeWord={addExcludedWord}
+                        usesNearHomophones={Object.entries(featuresParams).some(
+                            ([feature, enabled]) =>
+                                enabled && feature !== "consonant_reduction"
+                        )}
                     />
-                </form>
+                </section>
 
-                <Results
-                    data={results}
-                    isLoading={isLoading}
-                    error={error}
-                    onExcludeWord={addExcludedWord}
-                />
-            </section>
-
-            <footer>
-            </footer>
+                <footer>
+                </footer>
             </main>
         </>
     )
